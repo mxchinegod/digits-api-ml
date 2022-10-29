@@ -21,3 +21,11 @@ async def roberta(query: Dict[Any, Any]):
   AutoModelForQuestionAnswering.from_pretrained(model_name)
   AutoTokenizer.from_pretrained(model_name)
   return {"message": output}
+
+@app.post("/bart_cnn")
+async def bart_cnn(query: Dict[Any, Any]):
+  query = query["query"][0:4096]
+  from transformers import pipeline
+  summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+  output = summarizer(query, max_length=len(query)/2, min_length=30, do_sample=False)
+  return {"message": output}
