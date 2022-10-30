@@ -18,7 +18,7 @@ async def gpt2(query: str = Body(embed=True)):
 @app.post("/roberta")
 async def roberta(query: Dict[Any, Any]):
   """
-  The above code is using the HuggingFace transformers library to load a pretrained model and
+  The below code is using the HuggingFace transformers library to load a pretrained model and
   tokenizer. The model is then used to answer the question.
   """
   from transformers import AutoModelForQuestionAnswering, AutoTokenizer, pipeline
