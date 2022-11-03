@@ -46,5 +46,12 @@ async def bart_cnn(query: Dict[Any, Any]):
   print(query)
   from transformers import pipeline
   summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-  output = summarizer(query[0:1023], max_length=len(query)/2, min_length=30, do_sample=False)
+  output = summarizer(query[0:2023], max_length=len(query)/2, min_length=30, do_sample=False)
   return {"message": output}
+
+@app.post('/autodd')
+async def autodd():
+  from AutoDD import acquire
+  data = acquire(True)
+  if len(data)>0:
+    return data
