@@ -43,7 +43,6 @@ async def bart_cnn(query: Dict[Any, Any]):
   """
   import json
   query = json.dumps(query["query"])
-  print(query)
   from transformers import pipeline
   summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
   output = summarizer(query[0:2023], max_length=len(query)/2, min_length=30, do_sample=False)
