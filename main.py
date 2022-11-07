@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Body
+import json
 from typing import Dict, Any
-
+from fastapi.responses import JSONResponse
 app = FastAPI()
 
 @app.post("/gpt2")
@@ -41,7 +42,6 @@ async def bart_cnn(query: Dict[Any, Any]):
   :type query: Dict[Any, Any]
   :return: A dictionary with a key "message" and a value of the output of the summarizer.
   """
-  import json
   query = json.dumps(query["query"])
   from transformers import pipeline
   summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
@@ -54,3 +54,31 @@ async def autodd():
   data = acquire(True)
   if len(data)>0:
     return data
+
+@app.post('/greeks')
+async def greeks(query: Dict[Any, Any]):
+  query = query["query"]
+  from options import option
+  # otype = Call or Put
+  # S0 = Underlying Price
+  # K = Strike
+  # T = days to expiration or date (YYYY-MM-DD)
+  # ls = Long or Short 
+  # vol = Volatility
+  # marketPrice = Options Market Price
+  # q = Dividend Yield
+  # r = Risk Free Rate
+  # data["gamma"] = option(otype='Put', S0=227.44, K=200, expDay='2022-11-18', ls="Long", vol=29.00, marketPrice=0.34, q=1.19, r=0.045).gamma(S0=227.44, K=200, vol=29.00, q=1.19, r=0.045)
+  _ = option(otype=query['otype'], S0=query['S0'], K=query['K'], expDay=query['expDay'], ls=query['ls'], marketPrice=query['marketPrice'], q=query['q'], r=query['r'])
+  sweep = _.sweep({"price":[query['marketPrice']-50,query['marketPrice']+50,100],"vol":[0.1,0.5,100]},"ultima")
+  return {
+    "price":sweep['price'].tolist()
+    , "vol":sweep['vol'].tolist()
+    , 'S0':sweep['S0']
+    , 'K':sweep['K']
+    , 'r':sweep['r']
+    , 'T':sweep['T'].tolist()
+    , 'q':sweep['q']
+    , 'ultima':sweep['ultima'].tolist()
+    , 'ls':sweep['ls']
+  }
