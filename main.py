@@ -70,7 +70,7 @@ async def greeks(query: Dict[Any, Any]):
   # r = Risk Free Rate
   # data["gamma"] = option(otype='Put', S0=227.44, K=200, expDay='2022-11-18', ls="Long", vol=29.00, marketPrice=0.34, q=1.19, r=0.045).gamma(S0=227.44, K=200, vol=29.00, q=1.19, r=0.045)
   _ = option(otype=query['otype'], S0=query['S0'], K=query['K'], expDay=query['expDay'], ls=query['ls'], marketPrice=query['marketPrice'], q=query['q'], r=query['r'])
-  sweep = _.sweep({"price":[query['marketPrice']-50,query['marketPrice']+50,100],"vol":[0.1,0.5,100]},"ultima")
+  sweep = _.sweep({"price":[query['marketPrice']-50,query['marketPrice']+50,50],"vol":[0.1,0.5,50]},"ultima")
   return {
     "price":sweep['price'].tolist()
     , "vol":sweep['vol'].tolist()
