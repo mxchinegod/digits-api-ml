@@ -85,7 +85,7 @@ async def greeks(query: Dict[Any, Any]):
     }
 
 
-@app.post('/agi')
+@app.post('/oracle')
 async def agi(query: Dict[Any, Any]):
     query = query["query"]
     import AGI

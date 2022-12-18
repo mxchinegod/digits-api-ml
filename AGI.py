@@ -77,7 +77,7 @@ def promptf(question, prompt, intermediate = "\nIntermediate answer:", followup 
 def google(question):
     params = {
         "api_key": "AIzaSyBkDhEdaXNO60aeL1CmWRsREgjw2xyTLlY",
-        "q": question+" site:twitter.com",
+        "q": question,
         "google_domain": "https://www.googleapis.com/customsearch/v1",
         "cx": "415558f27b72e4b83"
     }
@@ -96,10 +96,10 @@ def get_answer(question):
 def call_gpt(cur_prompt, stop):
     ans = openai.Completion.create(
                 model="text-davinci-003",
-                max_tokens=256,
+                max_tokens=512,
                 stop=stop,
                 prompt=cur_prompt,
-                temperature=0)
+                temperature=1.5)
     returned = ans['choices'][0]['text']    
     return returned
 
