@@ -76,10 +76,10 @@ def promptf(question, prompt, intermediate = "\nIntermediate answer:", followup 
 
 def google(question):
     params = {
-        "api_key": "AIzaSyBkDhEdaXNO60aeL1CmWRsREgjw2xyTLlY",
+        "api_key": "AIzaSyCHWymxYJcglxvxtVoja1Ol6f_9W2SATIE",
         "q": question,
         "google_domain": "https://www.googleapis.com/customsearch/v1",
-        "cx": "415558f27b72e4b83"
+        "cx": "017576662512468239146"
     }
     data = requests.get(params["google_domain"]+"?key="+params["api_key"]+"&cx="+params["cx"]+"&q="+urllib.parse.quote_plus(params["q"]))
     res = ''
@@ -99,7 +99,7 @@ def call_gpt(cur_prompt, stop):
                 max_tokens=512,
                 stop=stop,
                 prompt=cur_prompt,
-                temperature=1.5)
+                temperature=1)
     returned = ans['choices'][0]['text']    
     return returned
 
