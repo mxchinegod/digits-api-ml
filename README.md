@@ -60,6 +60,7 @@ uvicorn main:app --reload --port 7000 --host=127.0.0.1
 ##### immediate
 
 - [x] Initialize beautiful README.md
+- [ ] Add queue/jobs!
 - [x] Describe service API role
 - [ ] Add husky pre-commit
 - [ ] Create mesh diagram
@@ -68,8 +69,8 @@ uvicorn main:app --reload --port 7000 --host=127.0.0.1
 
 ##### long-term
 
-- [ ] Docker images
-- [ ] Kubernetes deployment
+- [x] Docker images
+- [x] Kubernetes deployment
 
 <br>
 <p align="center">
