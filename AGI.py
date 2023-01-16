@@ -8,7 +8,7 @@ import requests
 import urllib.parse
 import configparser
 config = configparser.ConfigParser()
-
+config.read('config.ini')
 openai.api_key = config['DEFAULT']['open_ai']
 
 prompt = ['''Question: Who lived longer, Muhammad Ali or Alan Turing?
