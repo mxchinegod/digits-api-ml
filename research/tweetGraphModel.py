@@ -16,7 +16,7 @@ import matplotlib.patches as mpatches
 from collections import Counter
 import configparser
 config = configparser.ConfigParser()
-config.read('../config.ini')
+config.read('config.ini')
 
 plt.title('Real-Time Network Analysis - FinTwit', fontsize=18)
 
