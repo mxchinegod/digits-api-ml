@@ -22,7 +22,7 @@ plt.title('Real-Time Network Analysis - FinTwit', fontsize=18)
 
 # This is the authentication for the Twitter API.
 auth = tweepy.OAuthHandler(config['DEFAULT']['twitter_consumer'],
-                           config['DEFAULT']['twitter_consumer_secret']")
+                           config['DEFAULT']['twitter_consumer_secret'])
 auth.set_access_token(config['DEFAULT']['twitter_token'],
                       config['DEFAULT']['twitter_key'])
 
