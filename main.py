@@ -1,8 +1,6 @@
-from fastapi import FastAPI, BackgroundTasks, Body
+from fastapi import FastAPI, Body
 import json
 from typing import Dict, Any
-from fastapi.responses import JSONResponse
-import json
 app = FastAPI()
 
 @app.post("/gpt2")

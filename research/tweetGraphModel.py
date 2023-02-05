@@ -14,14 +14,17 @@ from sentence_transformers import util
 import termcolor
 import matplotlib.patches as mpatches
 from collections import Counter
+import configparser
+config = configparser.ConfigParser()
+config.read('../config.ini')
 
 plt.title('Real-Time Network Analysis - FinTwit', fontsize=18)
 
 # This is the authentication for the Twitter API.
-auth = tweepy.OAuthHandler("7gYcBzlUS0MpVmPenj27xvW5C",
-                           "aG3MHqbIP0zOmcHYJoMsK6UY3q1Z28gMvXGTc2ntMFDzbnpsCu")
-auth.set_access_token("171555247-n01UPAww9P7iADb6VHgnDa2bysOd8AAjTD39e6Ig",
-                      "ynzd84NPOweG3SkqaUcFp3CRtxHJrouWc1i1wOKQ9NBf3")
+auth = tweepy.OAuthHandler(config['DEFAULT']['twitter_consumer'],
+                           config['DEFAULT']['twitter_consumer_secret']")
+auth.set_access_token(config['DEFAULT']['twitter_token'],
+                      config['DEFAULT']['twitter_key'])
 
 # Loading the pretrained model and tokenizer for financial sequences from HuggingFace.
 tokenizer = AutoTokenizer.from_pretrained(
@@ -37,8 +40,6 @@ data = pd.DataFrame(columns=["text", "sentiment",
                     "symbols", "mentions", "follower_count", "following"])
 
 # Mean Pooling - Take attention mask into account for correct averaging
-
-
 def mean_pooling(model_output, attention_mask):
     # First element of model_output contains all token embeddings
     token_embeddings = model_output[0]
@@ -74,7 +75,6 @@ def sentence_similarity(sentences):
 
     return util.pytorch_cos_sim(sentence_embeddings[0], sentence_embeddings[1])
 
-
 def infer(input_text):
     """
     It takes in a string of text, encodes it into a sequence of integers, and returns the embedding
@@ -87,7 +87,6 @@ def infer(input_text):
     outputs = model(input_ids)
     last_hidden_states = outputs[0]
     return last_hidden_states
-
 
 def get_friends(screen_name):
     """
@@ -104,7 +103,6 @@ def get_friends(screen_name):
             name = f"{user.id} - {user.name} (@{user.screen_name})"
             followers.append(name)
     return followers
-
 
 def great_filter(tweet):
     """
@@ -128,7 +126,6 @@ def great_filter(tweet):
         return False
     else:
         return True
-
 
 def preprocess(tweet):
     """
@@ -182,7 +179,6 @@ def preprocess(tweet):
         plot_network()
     else:
         pass
-
 
 def plot_network():
     """
