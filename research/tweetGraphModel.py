@@ -38,12 +38,15 @@ banned_words = [
     "ANALYST PRICE"
     , "FOLLOW"
     , "TARGET PRICE"
+    , "PRICE TARGET"
     , "ALERTS"
     , "DISCORD"
+    , "SIGNALS"
     , "CHATROOM"
     , "JOIN"
     , "LINK"
     , "TRADING COMMUNITY"
+    , "ALL THESE LEVELS"
 ]
 banned_accounts = [
     "LlcBillionaire"
@@ -55,10 +58,15 @@ banned_accounts = [
     , "SJManhattan"
     , "MalibuInvest"
     , "vaikunt305"
+    , "Sir_L3X"
+    , "bankston_janet"
+    , "Maria31562570"
+    , "LasherMarkus"
+    , "PearlPo21341371"
 ]
 spam_symbol_count = 5
 csv_name = "data"
-graph_interval = 50
+graph_interval = 5
 
 # This is the authentication for the Twitter API.
 auth = tweepy.OAuthHandler(config['DEFAULT']['twitter_consumer'],
@@ -115,7 +123,7 @@ def sentence_similarity(sentences):
 
     return util.pytorch_cos_sim(sentence_embeddings[0], sentence_embeddings[1])
 
-def infer(input_text):
+def infer_sentiment(input_text):
     """
     It takes in a string of text, encodes it into a sequence of integers, and returns the embedding
     vector for the last token in the sequence
@@ -138,7 +146,7 @@ def get_friends(screen_name):
     followers = []
     for page in tweepy.Cursor(api.get_friends, screen_name=screen_name,
                               count=200).pages(10):
-        sleep(2)
+        sleep(5)
         for user in page:
             name = f"{user.id} - {user.name} (@{user.screen_name})"
             followers.append(name)
@@ -184,13 +192,14 @@ def preprocess(tweet):
         def _nolink(x): return re.sub(r"http\S+", "", x).replace("\n", "")
         print(termcolor.colored("PROCESSING: "+_nolink(_text), 'green'))
         text = _nolink(_text)
-        _sentiment = infer(text)
+        _sentiment = infer_sentiment(text)
         sentiment = _sentiment.detach().numpy()[0]
         symbols = [x['text'].upper() for x in _symbols]
         mentions = [x['screen_name'] for x in _mentions]
         follower_count = tweet['user']['followers_count']
+        #following = get_friends(tweet['user']['screen_name'])
         following = []
-
+        
         data.loc[len(data)] = [text, sentiment, symbols,
                                mentions, follower_count, following]
 
@@ -207,15 +216,19 @@ def preprocess(tweet):
                     mentions=mentions, follower_count=follower_count, following=following)
         for other_node_id, other_node_data in DG.nodes(data=True):
             if other_node_id == node_id:
-                continue
+                pass
             else:
                 cosim = sentence_similarity([DG.nodes(data=True)[node_id]['text'], DG.nodes(
                     data=True)[other_node_id]['text']]).detach().numpy()[0][0]
                 for symbol in symbols:
                     if symbol in other_node_data["symbols"]:
-                        DG.add_edge(node_id, other_node_id,
+                        DG.add_edge(other_node_id, node_id,
                                     weight=np.round(cosim, 4))
-        plot_network()
+        
+        if len(DG.nodes())%graph_interval==0:
+            plot_network()
+        else:
+            print(termcolor.colored(len(DG.nodes()), "blue"))
     else:
         pass
 
@@ -245,10 +258,8 @@ def plot_network():
     nx.draw_networkx_labels(DG, pos, labels, font_size=8, font_color="black")
     nx.draw(DG, pos, with_labels=False, node_color=colors,
             node_size=node_sizes, edgecolors='purple', alpha=0.5)
-    if len(DG.nodes())%graph_interval==0:
-        plt.show()
-    else:
-        print(termcolor.colored(len(DG.nodes()), "blue"))
+    plt.show()
+    
 
 # The class inherits from the tweepy Stream class, and overrides the on_status method
 class MyStreamListener(tweepy.Stream):
