@@ -34,30 +34,31 @@ def rainbow_print(text):
         print('\033[2K\033[1G', end='', flush=True) # erase line
 
 _DIR = os.getcwd()+"/"
-print(rainbow_print("--- OPERATING OUT OF "+_DIR+" ---"))
+print(rainbow_print("OPERATING OUT OF "+_DIR))
 config = configparser.ConfigParser()
 config.read(_DIR+"../config.ini")
-plt.title('Real-Time Network Analysis - FinTwit', fontsize=18)
 
 # CONFIGURATION
 monitoring = [
-    "$vix", "$spx", "$nvda", "$qqq"
+    "$spx", "$nvda", "$vix"
 ]
 csv_header = [
     'text', 'sentiment', 'symbols', 'mentions', 'follower_count', 'following'
 ]
 banned_words = [
-    "ANALYST PRICE", "FOLLOW", "TARGET PRICE", "PRICE TARGET", "ALERTS", "DISCORD", "SIGNALS", "CHATROOM", "JOIN", "LINK", "TRADING COMMUNITY", "ALL THESE LEVELS", "CLICK HERE"
+    "ANALYST PRICE", "CHAT", "FOLLOW", "TARGET PRICE", "PRICE TARGET", "ALERTS", "DISCORD", "SIGNALS", "CHATROOM", "JOIN", "LINK", "TRADING COMMUNITY", "ALL THESE LEVELS", "CLICK HERE"
 ]
 banned_accounts = [
-    "LlcBillionaire", "OptionsFlowLive", "TWAOptions", "Smith28301", "bishnuvardhan", "nappedonthebed", "TheTradingChamp", "SJManhattan", "MalibuInvest", "vaikunt305", "Sir_L3X", "bankston_janet", "Maria31562570", "LasherMarkus", "PearlPo21341371"
+    "LlcBillionaire", "stockmktgenius", "optionwaves", "CeoPurchases", "OptionsFlowLive", "TWAOptions", "Smith28301", "bishnuvardhan", "nappedonthebed", "TheTradingChamp", "SJManhattan", "MalibuInvest", "vaikunt305", "Sir_L3X", "bankston_janet", "Maria31562570", "LasherMarkus", "PearlPo21341371"
 ]
 spam_symbol_count = 5
 notification = "netgraph.wav"
-csv_name = "filtered_tweets"
-graph_interval = 50
+csv_name = "spx_nvda_vix"
+graph_interval = 1
+save_interval = 50
 post_tweet = False
 show_plot = True
+notification_on = True
 analysis_tweet = """
 📊🔮 #fintwit sentiment & speech similarity clustering
 [ """+str(monitoring)+""" ]
@@ -224,7 +225,7 @@ def preprocess(tweet):
                 for symbol in symbols:
                     if symbol in other_node_data["symbols"]:
                         DG.add_edge(other_node_id, node_id,
-                                    weight=np.round(cosim, 4), alpha=1-np.round(cosim, 4))
+                                    weight=np.round(cosim, 4), alpha=np.round(cosim, 4))
 
         if len(DG.nodes()) % graph_interval == 0:
             plot_network()
@@ -238,6 +239,7 @@ def plot_network():
     """
     It takes a tweet, preprocesses it, and then adds it to the graph.
     """
+    plt.clf() # clear the previous plot
     pos = nx.spring_layout(DG)
     labels = nx.get_node_attributes(DG, "symbols")
     sentiments = nx.get_node_attributes(DG, "sentiment")
@@ -260,16 +262,23 @@ def plot_network():
     nx.draw_networkx_labels(DG, pos, labels, font_size=8, font_color="black")
     nx.draw(DG, pos, with_labels=False, node_color=colors,
             node_size=node_sizes, edgecolors='purple', alpha=0.5)
-    playsound(_DIR+notification)
-    print(rainbow_print("--- NETWORK GRAPH SAVED IN "+_DIR+" ---"))
-    dt = datetime.now().strftime("%m/%d/%Y-%H:%M:%S").replace("/","_")
-    _fn = _DIR+dt+'.png'
-    plt.savefig(_fn, dpi=200)
+    plt.title('Real-Time Network Analysis - FinTwit', fontsize=18)
+    plt.figsize=(12, 8)
+    if len(DG.nodes()) % save_interval == 0:
+        dt = datetime.now().strftime("%m/%d/%Y-%H:%M:%S").replace("/","_")
+        _fn = _DIR+dt+'.png'
+        plt.savefig(_fn, dpi=1200)
+        if notification_on:
+            playsound(_DIR+notification)
+        print(rainbow_print("GRAPH SAVED TO "+dt+".png"))
+        
     if post_tweet:
         analysis_tweet_media = api.media_upload(_fn)
         api.update_status(status=analysis_tweet, media_ids=[
                           analysis_tweet_media.media_id])
     if show_plot:
+        plt.ion() # enable interactive mode
+        plt.pause(0.1) # pause for 0.1 seconds
         plt.show()
 
 
