@@ -54,6 +54,7 @@ banned_accounts = [
     , "TheTradingChamp"
     , "SJManhattan"
     , "MalibuInvest"
+    , "vaikunt305"
 ]
 spam_symbol_count = 5
 csv_name = "data"
