@@ -17,8 +17,47 @@ from collections import Counter
 import configparser
 config = configparser.ConfigParser()
 config.read('config.ini')
-
 plt.title('Real-Time Network Analysis - FinTwit', fontsize=18)
+
+# CONFIGURATION
+monitoring = [
+    "$vix"
+    , "$spx"
+    , "$nvda"
+    , "$qqq"
+]
+csv_header = [
+    'text'
+    , 'sentiment'
+    , 'symbols'
+    , 'mentions'
+    , 'follower_count'
+    , 'following'
+]
+banned_words = [
+    "ANALYST PRICE"
+    , "FOLLOW"
+    , "TARGET PRICE"
+    , "ALERTS"
+    , "DISCORD"
+    , "CHATROOM"
+    , "JOIN"
+    , "LINK"
+    , "TRADING COMMUNITY"
+]
+banned_accounts = [
+    "LlcBillionaire"
+    , "Smith28301"
+    # , "prospero_ai"
+    , "bishnuvardhan"
+    , "nappedonthebed"
+    , "TheTradingChamp"
+    , "SJManhattan"
+    , "MalibuInvest"
+]
+spam_symbol_count = 5
+csv_name = "data"
+graph_interval = 50
 
 # This is the authentication for the Twitter API.
 auth = tweepy.OAuthHandler(config['DEFAULT']['twitter_consumer'],
@@ -111,15 +150,16 @@ def great_filter(tweet):
     :param tweet: a tweet object
     :return: A list of dictionaries.
     """
-    banned_words = ["ANALYST PRICE", "FOLLOW", "TARGET PRICE", "ALERTS",
-                    "DISCORD", "CHATROOM", "JOIN", "LINK", "TRADING COMMUNITY"]
-    spam_symbol_count = 5
     if 'retweeted_status' in tweet.keys():
         print(termcolor.colored('REJECTED: RT', 'red'))
         return False
     for word in banned_words:
         if word in tweet['text'].upper():
             print(termcolor.colored('REJECTED: '+word, 'red'))
+            return False
+    for account in banned_accounts:
+        if account.upper() == tweet['user']['screen_name'].upper():
+            print(termcolor.colored('REJECTED: '+account, 'red'))
             return False
     if len(tweet['entities']['symbols']) == 0 or len(tweet['entities']['symbols']) >= spam_symbol_count:
         print(termcolor.colored('REJECTED: SYMBOLS', 'red'))
@@ -136,6 +176,7 @@ def preprocess(tweet):
     _json = json.dumps(tweet._json, indent=2)
     tweet = json.loads(_json)
     if great_filter(tweet):
+        print(tweet['user']['screen_name'])
         _text = tweet['text']
         _mentions = tweet['entities']['user_mentions']
         _symbols = tweet['entities']['symbols']
@@ -151,18 +192,15 @@ def preprocess(tweet):
 
         data.loc[len(data)] = [text, sentiment, symbols,
                                mentions, follower_count, following]
-        header = ['text', 'sentiment', 'symbols',
-                  'mentions', 'follower_count', 'following']
-        csvdata = [text, sentiment, symbols,
+
+        csv_data = [text, sentiment, symbols,
                    mentions, follower_count, following]
 
-        filename = "data.csv"
-
-        with open(filename, 'a', newline='') as f:
+        with open(csv_name+".csv", 'a', newline='') as f:
             writer = csv.writer(f)
             if f.tell() == 0:
-                writer.writerow(header)
-            writer.writerow(csvdata)
+                writer.writerow(csv_header)
+            writer.writerow(csv_data)
         node_id = len(data)
         DG.add_node(node_id, text=text, sentiment=sentiment, symbols=symbols,
                     mentions=mentions, follower_count=follower_count, following=following)
@@ -206,7 +244,7 @@ def plot_network():
     nx.draw_networkx_labels(DG, pos, labels, font_size=8, font_color="black")
     nx.draw(DG, pos, with_labels=False, node_color=colors,
             node_size=node_sizes, edgecolors='purple', alpha=0.5)
-    if len(DG.nodes())%10==0:
+    if len(DG.nodes())%graph_interval==0:
         plt.show()
     else:
         print(termcolor.colored(len(DG.nodes()), "blue"))
@@ -219,4 +257,4 @@ class MyStreamListener(tweepy.Stream):
 # Creating a stream of tweets
 tweet_stream = MyStreamListener(
     auth.consumer_key, auth.consumer_secret, auth.access_token, auth.access_token_secret)
-tweet_stream.filter(track=["$vix", "$spx", "$nvda", "$qqq"])
+tweet_stream.filter(track=monitoring)
