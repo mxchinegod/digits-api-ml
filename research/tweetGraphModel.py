@@ -85,7 +85,7 @@ DG = nx.DiGraph()
 data = pd.DataFrame(columns=csv_header)
 
 
-# class Chart(nx.DiGraph):
+# class Network(nx.DiGraph):
 #     def _temp():
 #         print('')
 
