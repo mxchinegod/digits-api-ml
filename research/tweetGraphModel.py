@@ -1,27 +1,28 @@
 import re
 import os
-import tweepy
-import json
 import csv
-import torch
-import termcolor
-import configparser
 import time
+import json
+import pytz
+import torch
+import tweepy
 import warnings
+import termcolor
 import numpy as np
-import networkx as nx
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoModel
+import configparser
 import pandas as pd
-import matplotlib.pyplot as plt
-from time import sleep
-import torch.nn.functional as F
-from sentence_transformers import util
+import networkx as nx
+from datetime import datetime
 from collections import Counter
 from playsound import playsound
-from datetime import datetime
-import pytz
+import matplotlib.pyplot as plt
+import torch.nn.functional as F
+from sentence_transformers import util
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoModel
+
 
 warnings.filterwarnings("ignore", category=UserWarning)
+
 
 def rainbow_print(text):
     colors = ['red', 'yellow', 'green', 'cyan', 'blue', 'magenta']
@@ -33,6 +34,7 @@ def rainbow_print(text):
             print(termcolor.colored(char, color), end='', flush=True)
         time.sleep(0.1)
         print('\033[2K\033[1G', end='', flush=True)  # erase line
+
 
 _DIR = os.getcwd()+"/"
 print(rainbow_print(" OPERATING OUT OF "+_DIR))
@@ -83,7 +85,12 @@ DG = nx.DiGraph()
 data = pd.DataFrame(columns=csv_header)
 
 
-class tweetPipeline(tweepy.Stream):
+# class Chart(nx.DiGraph):
+#     def _temp():
+#         print('')
+
+
+class TweetPipeline(tweepy.Stream):
 
     def on_status(self, status):
         self.preprocess(status)
@@ -147,7 +154,7 @@ class tweetPipeline(tweepy.Stream):
         followers = []
         for page in tweepy.Cursor(api.get_friends, screen_name=screen_name,
                                   count=200).pages(10):
-            sleep(5)
+            time.sleep(5)
             for user in page:
                 name = f"{user.id} - {user.name} (@{user.screen_name})"
                 followers.append(name)
@@ -292,6 +299,6 @@ class tweetPipeline(tweepy.Stream):
 
 
 # Creating a stream of tweets
-tweet_stream = tweetPipeline(
+tweet_stream = TweetPipeline(
     auth.consumer_key, auth.consumer_secret, auth.access_token, auth.access_token_secret)
 tweet_stream.filter(track=monitoring)
