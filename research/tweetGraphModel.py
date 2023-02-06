@@ -1,72 +1,64 @@
 import re
+import os
 import tweepy
 import json
-import numpy as np
 import csv
+import torch
+import termcolor
+import configparser
+import time
+import warnings
+import numpy as np
 import networkx as nx
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoModel
 import pandas as pd
 import matplotlib.pyplot as plt
 from time import sleep
-import torch
 import torch.nn.functional as F
 from sentence_transformers import util
-import termcolor
-import matplotlib.patches as mpatches
 from collections import Counter
-import configparser
+from playsound import playsound
+from datetime import datetime
+
+warnings.filterwarnings("ignore", category=UserWarning) 
+
+def rainbow_print(text):
+    colors = ['red', 'yellow', 'green', 'cyan', 'blue', 'magenta']
+    for x in range(len(colors)):
+        for color in colors:
+            for char in text:
+                print(termcolor.colored(char, color), end='', flush=True)
+            time.sleep(0.1)
+            print('\033[2K\033[1G', end='', flush=True)
+
+_DIR = os.getcwd()+"/"
+print(rainbow_print("--- OPERATING OUT OF "+_DIR+" ---"))
 config = configparser.ConfigParser()
-config.read('config.ini')
+config.read(_DIR+"../config.ini")
 plt.title('Real-Time Network Analysis - FinTwit', fontsize=18)
 
 # CONFIGURATION
 monitoring = [
-    "$vix"
-    , "$spx"
-    , "$nvda"
-    , "$qqq"
+    "$vix", "$spx", "$nvda", "$qqq"
 ]
 csv_header = [
-    'text'
-    , 'sentiment'
-    , 'symbols'
-    , 'mentions'
-    , 'follower_count'
-    , 'following'
+    'text', 'sentiment', 'symbols', 'mentions', 'follower_count', 'following'
 ]
 banned_words = [
-    "ANALYST PRICE"
-    , "FOLLOW"
-    , "TARGET PRICE"
-    , "PRICE TARGET"
-    , "ALERTS"
-    , "DISCORD"
-    , "SIGNALS"
-    , "CHATROOM"
-    , "JOIN"
-    , "LINK"
-    , "TRADING COMMUNITY"
-    , "ALL THESE LEVELS"
+    "ANALYST PRICE", "FOLLOW", "TARGET PRICE", "PRICE TARGET", "ALERTS", "DISCORD", "SIGNALS", "CHATROOM", "JOIN", "LINK", "TRADING COMMUNITY", "ALL THESE LEVELS", "CLICK HERE"
 ]
 banned_accounts = [
-    "LlcBillionaire"
-    , "Smith28301"
-    # , "prospero_ai"
-    , "bishnuvardhan"
-    , "nappedonthebed"
-    , "TheTradingChamp"
-    , "SJManhattan"
-    , "MalibuInvest"
-    , "vaikunt305"
-    , "Sir_L3X"
-    , "bankston_janet"
-    , "Maria31562570"
-    , "LasherMarkus"
-    , "PearlPo21341371"
+    "LlcBillionaire", "Smith28301", "bishnuvardhan", "nappedonthebed", "TheTradingChamp", "SJManhattan", "MalibuInvest", "vaikunt305", "Sir_L3X", "bankston_janet", "Maria31562570", "LasherMarkus", "PearlPo21341371"
 ]
 spam_symbol_count = 5
-csv_name = "data"
-graph_interval = 5
+notification = "netgraph.wav"
+csv_name = "filtered_tweets"
+graph_interval = 25
+post_tweet = False
+analysis_tweet = """
+📊🔮 #fintwit sentiment & speech similarity clustering
+[ $spx, $vix, $qqq, $nvda ]
+"""
 
 # This is the authentication for the Twitter API.
 auth = tweepy.OAuthHandler(config['DEFAULT']['twitter_consumer'],
@@ -95,6 +87,7 @@ def mean_pooling(model_output, attention_mask):
         -1).expand(token_embeddings.size()).float()
     return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
+
 def count_elements(json_objects):
     counts = Counter()
     for obj in json_objects:
@@ -102,6 +95,7 @@ def count_elements(json_objects):
         for symbol in symbol_list:
             counts[symbol] += 1
     return dict(counts)
+
 
 def sentence_similarity(sentences):
     """
@@ -123,6 +117,7 @@ def sentence_similarity(sentences):
 
     return util.pytorch_cos_sim(sentence_embeddings[0], sentence_embeddings[1])
 
+
 def infer_sentiment(input_text):
     """
     It takes in a string of text, encodes it into a sequence of integers, and returns the embedding
@@ -135,6 +130,7 @@ def infer_sentiment(input_text):
     outputs = model(input_ids)
     last_hidden_states = outputs[0]
     return last_hidden_states
+
 
 def get_friends(screen_name):
     """
@@ -152,6 +148,7 @@ def get_friends(screen_name):
             followers.append(name)
     return followers
 
+
 def great_filter(tweet):
     """
     If the tweet is a retweet, an advertisement, or has no symbols, then it is not a great tweet
@@ -160,21 +157,22 @@ def great_filter(tweet):
     :return: A list of dictionaries.
     """
     if 'retweeted_status' in tweet.keys():
-        print(termcolor.colored('REJECTED: RT', 'red'))
+        print(termcolor.colored('⛔️ RT', 'red'))
         return False
     for word in banned_words:
         if word in tweet['text'].upper():
-            print(termcolor.colored('REJECTED: '+word, 'red'))
+            print(termcolor.colored('⛔️ '+word, 'red'))
             return False
     for account in banned_accounts:
         if account.upper() == tweet['user']['screen_name'].upper():
-            print(termcolor.colored('REJECTED: '+account, 'red'))
+            print(termcolor.colored('⛔️ '+account, 'red'))
             return False
     if len(tweet['entities']['symbols']) == 0 or len(tweet['entities']['symbols']) >= spam_symbol_count:
-        print(termcolor.colored('REJECTED: SYMBOLS', 'red'))
+        print(termcolor.colored('⛔️ SYMBOLS', 'red'))
         return False
     else:
         return True
+
 
 def preprocess(tweet):
     """
@@ -185,28 +183,28 @@ def preprocess(tweet):
     _json = json.dumps(tweet._json, indent=2)
     tweet = json.loads(_json)
     if great_filter(tweet):
-        print(tweet['user']['screen_name'])
+        print("🧑‍💻 "+tweet['user']['screen_name'])
         _text = tweet['text']
         _mentions = tweet['entities']['user_mentions']
         _symbols = tweet['entities']['symbols']
         def _nolink(x): return re.sub(r"http\S+", "", x).replace("\n", "")
-        print(termcolor.colored("PROCESSING: "+_nolink(_text), 'green'))
+        print(termcolor.colored("🔮 "+_nolink(_text), 'green'))
         text = _nolink(_text)
         _sentiment = infer_sentiment(text)
         sentiment = _sentiment.detach().numpy()[0]
         symbols = [x['text'].upper() for x in _symbols]
         mentions = [x['screen_name'] for x in _mentions]
         follower_count = tweet['user']['followers_count']
-        #following = get_friends(tweet['user']['screen_name'])
+        # following = get_friends(tweet['user']['screen_name'])
         following = []
-        
+
         data.loc[len(data)] = [text, sentiment, symbols,
                                mentions, follower_count, following]
 
         csv_data = [text, sentiment, symbols,
-                   mentions, follower_count, following]
+                    mentions, follower_count, following]
 
-        with open(csv_name+".csv", 'a', newline='') as f:
+        with open(_DIR+csv_name+".csv", 'a', newline='') as f:
             writer = csv.writer(f)
             if f.tell() == 0:
                 writer.writerow(csv_header)
@@ -224,13 +222,14 @@ def preprocess(tweet):
                     if symbol in other_node_data["symbols"]:
                         DG.add_edge(other_node_id, node_id,
                                     weight=np.round(cosim, 4))
-        
-        if len(DG.nodes())%graph_interval==0:
+
+        if len(DG.nodes()) % graph_interval == 0:
             plot_network()
         else:
-            print(termcolor.colored(len(DG.nodes()), "blue"))
+            print("⏲️ "+termcolor.colored(len(DG.nodes()), "blue"))
     else:
         pass
+
 
 def plot_network():
     """
@@ -258,13 +257,24 @@ def plot_network():
     nx.draw_networkx_labels(DG, pos, labels, font_size=8, font_color="black")
     nx.draw(DG, pos, with_labels=False, node_color=colors,
             node_size=node_sizes, edgecolors='purple', alpha=0.5)
+    playsound(_DIR+notification)
+    print(rainbow_print("--- NETWORK GRAPH SAVED IN "+_DIR+" ---"))
+    dt = datetime.now().strftime("%m/%d/%Y-%H:%M:%S").replace("/","_")
+    _fn = _DIR+dt+'.png'
+    plt.savefig(_fn, dpi=200)
+    if post_tweet:
+        analysis_tweet_media = api.media_upload(_fn)
+        api.update_status(status=analysis_tweet, media_ids=[
+                          analysis_tweet_media.media_id])
     plt.show()
-    
 
 # The class inherits from the tweepy Stream class, and overrides the on_status method
+
+
 class MyStreamListener(tweepy.Stream):
     def on_status(self, status):
         preprocess(status)
+
 
 # Creating a stream of tweets
 tweet_stream = MyStreamListener(
