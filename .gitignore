@@ -133,4 +133,5 @@ dmypy.json
 .DS_Store
 
 # Research
-data.csv
+research/*.csv
+research/*.png

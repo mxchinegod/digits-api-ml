@@ -24,12 +24,14 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 def rainbow_print(text):
     colors = ['red', 'yellow', 'green', 'cyan', 'blue', 'magenta']
-    for x in range(len(colors)):
-        for color in colors:
-            for char in text:
-                print(termcolor.colored(char, color), end='', flush=True)
-            time.sleep(0.1)
-            print('\033[2K\033[1G', end='', flush=True)
+    n = len(text)
+    for i in range(n):
+        for j in range(10):
+            char = text[(i + j) % n]
+            color = colors[j % len(colors)]
+            print(termcolor.colored(char, color), end='', flush=True)
+        time.sleep(0.1)
+        print('\033[2K\033[1G', end='', flush=True) # erase line
 
 _DIR = os.getcwd()+"/"
 print(rainbow_print("--- OPERATING OUT OF "+_DIR+" ---"))
@@ -48,16 +50,17 @@ banned_words = [
     "ANALYST PRICE", "FOLLOW", "TARGET PRICE", "PRICE TARGET", "ALERTS", "DISCORD", "SIGNALS", "CHATROOM", "JOIN", "LINK", "TRADING COMMUNITY", "ALL THESE LEVELS", "CLICK HERE"
 ]
 banned_accounts = [
-    "LlcBillionaire", "Smith28301", "bishnuvardhan", "nappedonthebed", "TheTradingChamp", "SJManhattan", "MalibuInvest", "vaikunt305", "Sir_L3X", "bankston_janet", "Maria31562570", "LasherMarkus", "PearlPo21341371"
+    "LlcBillionaire", "OptionsFlowLive", "TWAOptions", "Smith28301", "bishnuvardhan", "nappedonthebed", "TheTradingChamp", "SJManhattan", "MalibuInvest", "vaikunt305", "Sir_L3X", "bankston_janet", "Maria31562570", "LasherMarkus", "PearlPo21341371"
 ]
 spam_symbol_count = 5
 notification = "netgraph.wav"
 csv_name = "filtered_tweets"
-graph_interval = 25
+graph_interval = 50
 post_tweet = False
+show_plot = True
 analysis_tweet = """
 📊🔮 #fintwit sentiment & speech similarity clustering
-[ $spx, $vix, $qqq, $nvda ]
+[ """+str(monitoring)+""" ]
 """
 
 # This is the authentication for the Twitter API.
@@ -76,8 +79,8 @@ api = tweepy.API(auth)
 
 DG = nx.DiGraph()
 
-data = pd.DataFrame(columns=["text", "sentiment",
-                    "symbols", "mentions", "follower_count", "following"])
+data = pd.DataFrame(columns=csv_header)
+
 
 # Mean Pooling - Take attention mask into account for correct averaging
 def mean_pooling(model_output, attention_mask):
@@ -221,12 +224,12 @@ def preprocess(tweet):
                 for symbol in symbols:
                     if symbol in other_node_data["symbols"]:
                         DG.add_edge(other_node_id, node_id,
-                                    weight=np.round(cosim, 4))
+                                    weight=np.round(cosim, 4), alpha=1-np.round(cosim, 4))
 
         if len(DG.nodes()) % graph_interval == 0:
             plot_network()
         else:
-            print("⏲️ "+termcolor.colored(len(DG.nodes()), "blue"))
+            print("⏲️ "+termcolor.colored(str(len(DG.nodes()))+"/"+str(graph_interval), "blue"))
     else:
         pass
 
@@ -266,11 +269,11 @@ def plot_network():
         analysis_tweet_media = api.media_upload(_fn)
         api.update_status(status=analysis_tweet, media_ids=[
                           analysis_tweet_media.media_id])
-    plt.show()
+    if show_plot:
+        plt.show()
+
 
 # The class inherits from the tweepy Stream class, and overrides the on_status method
-
-
 class MyStreamListener(tweepy.Stream):
     def on_status(self, status):
         preprocess(status)
