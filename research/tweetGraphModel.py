@@ -19,6 +19,7 @@ from sentence_transformers import util
 from collections import Counter
 from playsound import playsound
 from datetime import datetime
+import pytz
 
 warnings.filterwarnings("ignore", category=UserWarning) 
 
@@ -34,7 +35,7 @@ def rainbow_print(text):
         print('\033[2K\033[1G', end='', flush=True) # erase line
 
 _DIR = os.getcwd()+"/"
-print(rainbow_print("OPERATING OUT OF "+_DIR))
+print(rainbow_print(" OPERATING OUT OF "+_DIR))
 config = configparser.ConfigParser()
 config.read(_DIR+"../config.ini")
 
@@ -43,19 +44,18 @@ monitoring = [
     "$spx", "$nvda", "$vix"
 ]
 csv_header = [
-    'text', 'sentiment', 'symbols', 'mentions', 'follower_count', 'following'
+    'text', 'sentiment', 'symbols', 'mentions', 'follower_count', 'following', 'screen_name', 'created_at'
 ]
 banned_words = [
-    "ANALYST PRICE", "CHAT", "FOLLOW", "TARGET PRICE", "PRICE TARGET", "ALERTS", "DISCORD", "SIGNALS", "CHATROOM", "JOIN", "LINK", "TRADING COMMUNITY", "ALL THESE LEVELS", "CLICK HERE"
+    "ANALYST PRICE", "CHAT", "COMMUNITY", "FOLLOW", "TARGET PRICE", "PRICE TARGET", "ALERTS", "DISCORD", "SIGNALS", "CHATROOM", "JOIN", "LINK", "TRADING COMMUNITY", "ALL THESE LEVELS", "CLICK HERE"
 ]
 banned_accounts = [
-    "LlcBillionaire", "stockmktgenius", "optionwaves", "CeoPurchases", "OptionsFlowLive", "TWAOptions", "Smith28301", "bishnuvardhan", "nappedonthebed", "TheTradingChamp", "SJManhattan", "MalibuInvest", "vaikunt305", "Sir_L3X", "bankston_janet", "Maria31562570", "LasherMarkus", "PearlPo21341371"
+    "LlcBillionaire", "atonesapple66", "stockmktgenius", "optionwaves", "CeoPurchases", "OptionsFlowLive", "TWAOptions", "Smith28301", "bishnuvardhan", "nappedonthebed", "TheTradingChamp", "SJManhattan", "MalibuInvest", "vaikunt305", "Sir_L3X", "bankston_janet", "Maria31562570", "LasherMarkus", "PearlPo21341371"
 ]
-spam_symbol_count = 5
 notification = "netgraph.wav"
 csv_name = "spx_nvda_vix"
 graph_interval = 1
-save_interval = 50
+save_interval = 20
 post_tweet = False
 show_plot = True
 notification_on = True
@@ -171,7 +171,7 @@ def great_filter(tweet):
         if account.upper() == tweet['user']['screen_name'].upper():
             print(termcolor.colored('⛔️ '+account, 'red'))
             return False
-    if len(tweet['entities']['symbols']) == 0 or len(tweet['entities']['symbols']) >= spam_symbol_count:
+    if len(tweet['entities']['symbols']) == 0 or len(tweet['entities']['symbols']) >= monitoring:
         print(termcolor.colored('⛔️ SYMBOLS', 'red'))
         return False
     else:
@@ -187,7 +187,8 @@ def preprocess(tweet):
     _json = json.dumps(tweet._json, indent=2)
     tweet = json.loads(_json)
     if great_filter(tweet):
-        print("🧑‍💻 "+tweet['user']['screen_name'])
+        screen_name = tweet['user']['screen_name']
+        print("🧑‍💻 "+screen_name)
         _text = tweet['text']
         _mentions = tweet['entities']['user_mentions']
         _symbols = tweet['entities']['symbols']
@@ -195,18 +196,25 @@ def preprocess(tweet):
         print(termcolor.colored("🔮 "+_nolink(_text), 'green'))
         text = _nolink(_text)
         _sentiment = infer_sentiment(text)
+        _created_at = tweet['created_at']
+        _created_at = datetime.strptime(_created_at, "%a %b %d %H:%M:%S %z %Y")
+        est_tz = pytz.timezone('America/New_York')
+        est_dt = _created_at.astimezone(est_tz)
+        created_at = est_dt.strftime("%a %b %d %H:%M:%S %Z %Y")
+
         sentiment = _sentiment.detach().numpy()[0]
         symbols = [x['text'].upper() for x in _symbols]
         mentions = [x['screen_name'] for x in _mentions]
         follower_count = tweet['user']['followers_count']
         # following = get_friends(tweet['user']['screen_name'])
+        
         following = []
 
         data.loc[len(data)] = [text, sentiment, symbols,
-                               mentions, follower_count, following]
+                               mentions, follower_count, following, screen_name, created_at]
 
         csv_data = [text, sentiment, symbols,
-                    mentions, follower_count, following]
+                    mentions, follower_count, following, screen_name, created_at]
 
         with open(_DIR+csv_name+".csv", 'a', newline='') as f:
             writer = csv.writer(f)
@@ -268,9 +276,9 @@ def plot_network():
         dt = datetime.now().strftime("%m/%d/%Y-%H:%M:%S").replace("/","_")
         _fn = _DIR+dt+'.png'
         plt.savefig(_fn, dpi=1200)
+        print(rainbow_print(" GRAPH SAVED TO "+dt+".png"))
         if notification_on:
             playsound(_DIR+notification)
-        print(rainbow_print("GRAPH SAVED TO "+dt+".png"))
         
     if post_tweet:
         analysis_tweet_media = api.media_upload(_fn)
