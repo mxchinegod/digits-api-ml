@@ -12,6 +12,7 @@ import numpy as np
 import configparser
 import pandas as pd
 import networkx as nx
+from pyvis.network import Network
 from datetime import datetime
 from collections import Counter
 from playsound import playsound
@@ -49,10 +50,10 @@ csv_header = [
     'text', 'sentiment', 'symbols', 'mentions', 'follower_count', 'following', 'screen_name', 'created_at'
 ]
 banned_words = [
-    "ANALYST PRICE", "CHAT", "COMMUNITY", "FOLLOW", "TARGET PRICE", "PRICE TARGET", "ALERTS", "DISCORD", "SIGNALS", "CHATROOM", "JOIN", "LINK", "TRADING COMMUNITY", "ALL THESE LEVELS", "CLICK HERE"
+    "ANALYST PRICE", "CHAT", "BEST ROOM", "COMMUNITY", "FOLLOW", "TARGET PRICE", "PRICE TARGET", "ALERTS", "DISCORD", "SIGNALS", "CHATROOM", "JOIN", "LINK", "TRADING COMMUNITY", "ALL THESE LEVELS", "CLICK HERE"
 ]
 banned_accounts = [
-    "LlcBillionaire", "atonesapple66", "stockmktgenius", "optionwaves", "CeoPurchases", "OptionsFlowLive", "TWAOptions", "Smith28301", "bishnuvardhan", "nappedonthebed", "TheTradingChamp", "SJManhattan", "MalibuInvest", "vaikunt305", "Sir_L3X", "bankston_janet", "Maria31562570", "LasherMarkus", "PearlPo21341371"
+    "LlcBillionaire", "Stock_Market_Pr", "atonesapple66", "stockmktgenius", "optionwaves", "CeoPurchases", "OptionsFlowLive", "TWAOptions", "Smith28301", "bishnuvardhan", "nappedonthebed", "TheTradingChamp", "SJManhattan", "MalibuInvest", "vaikunt305", "Sir_L3X", "bankston_janet", "Maria31562570", "LasherMarkus", "PearlPo21341371"
 ]
 notification = "netgraph.wav"
 csv_name = "spx_nvda_vix"
@@ -60,6 +61,7 @@ graph_interval = 1
 save_interval = 20
 post_tweet = False
 show_plot = False
+export = False
 notification_on = True
 analysis_tweet = """
 📊🔮 #fintwit sentiment & speech similarity clustering
@@ -280,19 +282,23 @@ class TweetPipeline(tweepy.Stream):
                 node_size=node_sizes, edgecolors='purple', alpha=0.5)
         plt.title('Real-Time Network Analysis - FinTwit', fontsize=18)
         plt.figsize = (12, 8)
-        if len(DG.nodes()) % save_interval == 0:
-            dt = datetime.now().strftime("%m/%d/%Y-%H:%M:%S").replace("/", "_")
-            _fn = _DIR+dt+'.png'
-            plt.savefig(_fn, dpi=600)
-            print(rainbow_print(" GRAPH SAVED TO "+dt+".png"))
-            if notification_on:
-                playsound(_DIR+notification)
+        dt = datetime.now().strftime("%m_%d_%Y-%H:%M:%S")
+        if export:
+            if len(DG.nodes()) % save_interval == 0:
+                _fn = _DIR+dt+'.png'
+                plt.savefig(_fn, dpi=600)
+                print(rainbow_print(" GRAPH SAVED TO "+dt+".png"))
+                if notification_on:
+                    playsound(_DIR+notification)
 
         if post_tweet:
             analysis_tweet_media = api.media_upload(_fn)
             api.update_status(status=analysis_tweet, media_ids=[
                 analysis_tweet_media.media_id])
         if show_plot:
+            # net=Network()
+            # net.from_nx(DG)
+            # net.show(_DIR+dt+'.html')
             plt.ion()  # enable interactive mode
             plt.pause(0.1)  # pause for 0.1 seconds
             plt.show()

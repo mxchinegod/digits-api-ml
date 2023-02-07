@@ -135,3 +135,4 @@ dmypy.json
 # Research
 research/*.csv
 research/*.png
+research/*.html
