@@ -44,10 +44,10 @@ config.read(_DIR+"../config.ini")
 
 # CONFIGURATION
 monitoring = [
-    "$spx", "$nvda", "$vix"
+    "$spx", "$qqq", "#cpi"
 ]
 csv_header = [
-    'text', 'sentiment', 'symbols', 'mentions', 'follower_count', 'following', 'screen_name', 'created_at'
+    'text', 'sentiment', 'symbols', 'prices', 'mentions', 'follower_count', 'following', 'screen_name', 'created_at'
 ]
 banned_words = [
     "ANALYST PRICE", "CHAT", "BEST ROOM", "COMMUNITY", "FOLLOW", "TARGET PRICE", "PRICE TARGET", "ALERTS", "DISCORD", "SIGNALS", "CHATROOM", "JOIN", "LINK", "TRADING COMMUNITY", "ALL THESE LEVELS", "CLICK HERE"
@@ -56,12 +56,13 @@ banned_accounts = [
     "LlcBillionaire", "Stock_Market_Pr", "atonesapple66", "stockmktgenius", "optionwaves", "CeoPurchases", "OptionsFlowLive", "TWAOptions", "Smith28301", "bishnuvardhan", "nappedonthebed", "TheTradingChamp", "SJManhattan", "MalibuInvest", "vaikunt305", "Sir_L3X", "bankston_janet", "Maria31562570", "LasherMarkus", "PearlPo21341371"
 ]
 notification = "netgraph.wav"
-csv_name = "spx_nvda_vix"
+csv_name = "_".join(monitoring)
 graph_interval = 1
 save_interval = 20
 post_tweet = False
 show_plot = False
 export = False
+network = False
 notification_on = True
 analysis_tweet = """
 📊🔮 #fintwit sentiment & speech similarity clustering
@@ -111,6 +112,18 @@ class TweetPipeline(tweepy.Stream):
             for symbol in symbol_list:
                 counts[symbol] += 1
         return dict(counts)
+
+    def extract_price(self, text):
+        # Define the regular expression pattern for detecting different price formats
+        pattern = re.compile(r'\$\d+(?:\.\d+)?|\d+(?:\.\d+)?\s*[$€£¥]|\d+(?:\.\d+)?\s*USD')
+        match = re.search(pattern, text)
+        
+        # If a match is found, return the float representation of the price
+        if match:
+            return float(match.group().replace('$', '').replace('€', '').replace('£', '').replace('¥', '').replace('USD', '').strip())
+        
+        # Return None if no match is found
+        return None
 
     def sentence_similarity(self, sentences):
         """
@@ -203,6 +216,7 @@ class TweetPipeline(tweepy.Stream):
             def _nolink(x): return re.sub(r"http\S+", "", x).replace("\n", "")
             print(termcolor.colored("🔮 "+_nolink(_text), 'green'))
             text = _nolink(_text)
+            prices = self.extract_price(text)
             _sentiment = self.infer_sentiment(text)
             _created_at = tweet['created_at']
             _created_at = datetime.strptime(
@@ -219,10 +233,10 @@ class TweetPipeline(tweepy.Stream):
 
             following = []
 
-            data.loc[len(data)] = [text, sentiment, symbols,
+            data.loc[len(data)] = [text, sentiment, symbols, prices,
                                    mentions, follower_count, following, screen_name, created_at]
 
-            csv_data = [text, sentiment, symbols,
+            csv_data = [text, sentiment, symbols, prices,
                         mentions, follower_count, following, screen_name, created_at]
 
             with open(_DIR+csv_name+".csv", 'a', newline='') as f:
@@ -230,25 +244,26 @@ class TweetPipeline(tweepy.Stream):
                 if f.tell() == 0:
                     writer.writerow(csv_header)
                 writer.writerow(csv_data)
-            node_id = len(data)
-            DG.add_node(node_id, text=text, sentiment=sentiment, symbols=symbols,
-                        mentions=mentions, follower_count=follower_count, following=following)
-            for other_node_id, other_node_data in DG.nodes(data=True):
-                if other_node_id == node_id:
-                    pass
-                else:
-                    cosim = self.sentence_similarity([DG.nodes(data=True)[node_id]['text'], DG.nodes(
-                        data=True)[other_node_id]['text']]).detach().numpy()[0][0]
-                    for symbol in symbols:
-                        if symbol in other_node_data["symbols"]:
-                            DG.add_edge(other_node_id, node_id,
-                                        weight=np.round(cosim, 4), alpha=np.round(cosim, 4))
+            if network:
+                node_id = len(data)
+                DG.add_node(node_id, text=text, sentiment=sentiment, symbols=symbols,
+                            mentions=mentions, follower_count=follower_count, following=following)
+                for other_node_id, other_node_data in DG.nodes(data=True):
+                    if other_node_id == node_id:
+                        pass
+                    else:
+                        cosim = self.sentence_similarity([DG.nodes(data=True)[node_id]['text'], DG.nodes(
+                            data=True)[other_node_id]['text']]).detach().numpy()[0][0]
+                        for symbol in symbols:
+                            if symbol in other_node_data["symbols"]:
+                                DG.add_edge(other_node_id, node_id,
+                                            weight=np.round(cosim, 4), alpha=np.round(cosim, 4))
 
-            if len(DG.nodes()) % graph_interval == 0:
-                self.plot_network()
-            else:
-                print("⏲️ "+termcolor.colored(str(len(DG.nodes())) +
-                      "/"+str(graph_interval), "blue"))
+                if len(DG.nodes()) % graph_interval == 0:
+                    self.plot_network()
+                else:
+                    print("⏲️ "+termcolor.colored(str(len(DG.nodes())) +
+                        "/"+str(graph_interval), "blue"))
         else:
             pass
 
