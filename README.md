@@ -30,7 +30,7 @@ digits-api-ml is a large suite of API endpoints that directly respond with the i
 
 ## 📜 Provided Scripts ✨
 
-##### Digits Pro provides some useful scripts to help you quick start.
+##### Digits AI provides some useful scripts to help you quick start.
 
 ##### Requirements provided in `requirements.txt`.
 
