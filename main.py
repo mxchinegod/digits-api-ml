@@ -88,3 +88,10 @@ async def agi(query: Dict[Any, Any]):
     query = query["query"]
     import AGI
     return { "answer": AGI.main(query) }
+
+
+@app.post('/pdf_sentiment')
+async def agi(query: Dict[Any, Any]):
+    query = query["query"]
+    import pdf_sentiment
+    return { "answer": pdf_sentiment.main(query) }

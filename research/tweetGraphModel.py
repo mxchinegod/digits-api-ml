@@ -44,7 +44,7 @@ config.read(_DIR+"../config.ini")
 
 # CONFIGURATION
 monitoring = [
-    "$spx", "$qqq", "#cpi"
+    "$SPX", "$QQQ", "$ES"
 ]
 csv_header = [
     'text', 'sentiment', 'symbols', 'prices', 'mentions', 'follower_count', 'following', 'screen_name', 'created_at'

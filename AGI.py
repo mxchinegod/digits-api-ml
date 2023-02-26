@@ -81,7 +81,7 @@ def google(question):
         "api_key": config['DEFAULT']['google_search'],
         "q": question,
         "google_domain": "https://www.googleapis.com/customsearch/v1",
-        "cx": "017576662512468239146"
+        "cx": config['DEFAULT']['google_cx']
     }
     data = requests.get(params["google_domain"]+"?key="+params["api_key"] +
                         "&cx="+params["cx"]+"&q="+urllib.parse.quote_plus(params["q"]))
