@@ -94,4 +94,4 @@ async def agi(query: Dict[Any, Any]):
 async def agi(query: Dict[Any, Any]):
     query = query["query"]
     import pdf_sentiment
-    return { "answer": pdf_sentiment.main(query) }
+    return pdf_sentiment.main(query)
