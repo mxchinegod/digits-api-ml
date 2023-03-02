@@ -52,7 +52,18 @@ def classify_sentiment(sentence, model, tokenizer):
 
 def main(url):
     text = convert_pdf_to_txt(url)
-    sentences = re.split(r'(?<!\b(?:[A-Z]\.)+[A-Z])\s*[.!?]\s+', text)
+    # Define a regular expression pattern to match abbreviations
+    abbr_pattern = r'\b(?:[A-Z]\.)+[A-Z]\b'
+
+    # Replace any abbreviations with a placeholder string
+    text = re.sub(abbr_pattern, '__abbr__\\g<0>__', text)
+
+    # Split the text on sentence-ending punctuation marks, ignoring any placeholders
+    sentences = re.split(r'(?<!__abbr__)[''.!?]\s+', text)
+
+    # Remove the placeholder string from each sentence
+    sentences = [re.sub(r'__abbr__(.*?)__', r'\g<1>', s) for s in sentences]
+
     sentiments = []
     tokenizer = AutoTokenizer.from_pretrained(
         "nickmuchi/deberta-v3-base-finetuned-finance-text-classification")
