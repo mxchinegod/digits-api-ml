@@ -52,7 +52,7 @@ def classify_sentiment(sentence, model, tokenizer):
 
 def main(url):
     text = convert_pdf_to_txt(url)
-    sentences = re.split(r'(?<!\b(?:[A-Z]\.)+|[A-Z])\s*[.!?]\s+', text)
+    sentences = re.split(r'(?<!\b(?:[A-Z]\.)+[A-Z])\s*[.!?]\s+', text)
     sentiments = []
     tokenizer = AutoTokenizer.from_pretrained(
         "nickmuchi/deberta-v3-base-finetuned-finance-text-classification")
